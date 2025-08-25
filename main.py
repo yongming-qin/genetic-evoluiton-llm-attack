@@ -7,9 +7,9 @@ import argparse
 import sys
 import os
 from typing import Optional
-from config import POPULATION_SIZE, MAX_GENERATIONS
+from config import POPULATION_SIZE, MAX_GENERATIONS, INITIAL_POPULATION_FILE
 from llm_client import LLMClient
-from deception_agent import DeceptionAgent
+from genetic_agent import SpecificAgent
 from genetic_algorithm import GeneticAlgorithm
 from parallel_evaluator import ParallelEvaluator
 from model_config import ModelConfig
@@ -23,6 +23,8 @@ def main():
         epilog="""
 Examples:
   python main.py --generations 50 --population 100
+  python main.py --text-file example_attack_samples.txt --population 20
+  python main.py -t attack_discussion.txt -g 30 -p 50
         """
     )
     
@@ -53,45 +55,6 @@ Examples:
         help='Enable verbose output'
     )
     
-    parser.add_argument(
-        '--model', '-m',
-        type=str,
-        default='deepseek_r1',
-        help='Model to use for optimization (default: deepseek_r1)'
-    )
-    
-    parser.add_argument(
-        '--use-hf-evaluator',
-        action='store_true',
-        help='Use Hugging Face model for evaluation'
-    )
-    
-    parser.add_argument(
-        '--parallel-eval',
-        action='store_true',
-        help='Use parallel evaluation with multiple judge models'
-    )
-    
-    parser.add_argument(
-        '--target-model',
-        type=str,
-        default='gpt-oss-20b',
-        help='Target model to attack (default: gpt-oss-20b)'
-    )
-    
-    parser.add_argument(
-        '--config',
-        type=str,
-        default='parallel_config.json',
-        help='Configuration file path (default: parallel_config.json)'
-    )
-    
-    parser.add_argument(
-        '--use-config',
-        action='store_true',
-        help='Use configuration file for parameters (overrides command line args)'
-    )
-    
     args = parser.parse_args()
     
     # Load configuration if requested
@@ -118,26 +81,11 @@ Examples:
     
     # Initialize components
     print("Initializing Genetic Attack Framework...")
-    print(f"Selected model: {args.model}")
-    print(f"Target model: {args.target_model}")
-    print(f"HF Evaluator: {'Enabled' if args.use_hf_evaluator else 'Disabled'}")
-    print(f"Parallel Evaluation: {'Enabled' if args.parallel_eval else 'Disabled'}")
     
     try:
-        # Initialize parallel evaluator if requested
-        parallel_evaluator = None
-        if args.parallel_eval:
-            parallel_evaluator = ParallelEvaluator(
-                target_model_name=args.target_model,
-                enable_deepseek=True,
-                enable_gpt4o=True,
-                enable_qwen=True
-            )
-            print("✓ Parallel Evaluator initialized")
-        
-        llm_client = LLMClient(use_hf_evaluator=args.use_hf_evaluator)
-        deception_agent = DeceptionAgent(model_name=args.model)
-        genetic_algo = GeneticAlgorithm(llm_client, deception_agent, parallel_evaluator=parallel_evaluator)
+        llm_client = LLMClient()
+        deception_agent = DeceptionAgent()
+        genetic_algo = GeneticAlgorithm(llm_client, deception_agent)
         
         print("✓ LLM Client initialized")
         print("✓ Deception Agent initialized")
@@ -153,8 +101,8 @@ Examples:
     
     try:
         # Initialize population
-        genetic_algo.initialize_population(args.population)
-        print(f"✓ Initial population of {len(genetic_algo.population)} created")
+        genetic_algo.initialize_population(args.population, args.text_file)
+        print(f"✓ Initial population of {len(genetic_algo.population)} created from {args.text_file}")
         
         # Run evolution
         results = genetic_algo.run_evolution(args.generations)

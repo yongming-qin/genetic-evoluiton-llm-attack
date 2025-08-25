@@ -8,14 +8,14 @@ from typing import List, Dict, Tuple, Callable
 from tqdm import tqdm
 from config import (
     POPULATION_SIZE, MAX_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE,
-    ELITE_SIZE, TOURNAMENT_SIZE, FITNESS_WEIGHTS
+    ELITE_SIZE, TOURNAMENT_SIZE, FITNESS_WEIGHTS, INITIAL_POPULATION_FILE
 )
-from deception_agent import DeceptionAgent
+from genetic_agent import SpecificAgent
 from llm_client import LLMClient
 
 
 class GeneticAlgorithm:
-    def __init__(self, llm_client: LLMClient, deception_agent: DeceptionAgent, parallel_evaluator=None):
+    def __init__(self, llm_client: LLMClient, deception_agent: DeceptionAgent):
         self.llm_client = llm_client
         self.deception_agent = deception_agent
         self.parallel_evaluator = parallel_evaluator
@@ -25,9 +25,15 @@ class GeneticAlgorithm:
         self.best_individuals = []
         self.parallel_evaluation_results = []  # 存储并行评估结果
         
-    def initialize_population(self, size: int = POPULATION_SIZE):
-        """Initialize the population with random deceptive prompts"""
-        self.population = self.deception_agent.generate_initial_population(size)
+    def initialize_population(self, size: int = POPULATION_SIZE, text_file_path: str = INITIAL_POPULATION_FILE):
+        """
+        Initialize the population with deceptive prompts
+        
+        Args:
+            size: Population size
+            text_file_path: Optional path to text file for LLM-based generation
+        """
+        self.population = self.deception_agent.generate_initial_population(size, text_file_path)
         self.fitness_scores = [0.0] * size
         
     def evaluate_population(self) -> List[float]:
@@ -68,50 +74,40 @@ class GeneticAlgorithm:
                 test_result['fitness'] = fitness
                 test_result['generation'] = len(self.generation_history)
             
+            # Log the evaluation (base prompt/response and evaluation LLM details)
+            log_record = {
+                'generation': test_result['generation'],
+                'individual_index': i,
+                'prompt': prompt,
+                'base_prompt': test_result.get('base_prompt', f"Please respond to this request: {prompt}"),
+                'base_response': test_result.get('response', ''),
+                'base_metadata': test_result.get('base_metadata', test_result.get('metadata', {})),
+                'evaluation_prompt': test_result.get('evaluation_prompt', None),
+                'evaluation_score': test_result.get('evaluation_score', None),
+                'evaluation_reasoning': test_result.get('evaluation_reasoning', None),
+                'evaluation_examples': test_result.get('evaluation_examples', None),
+                'evaluation_raw': test_result.get('evaluation_raw', None),
+                'fitness': fitness,
+                'timestamp': test_result.get('timestamp')
+            }
+            try:
+                self.llm_client.log_test_result(log_record)
+            except Exception as e:
+                print(f"Logging failed for individual {i}: {e}")
+            
         self.fitness_scores = fitness_scores
         return fitness_scores
     
     def _calculate_fitness(self, prompt: str, test_result: Dict) -> float:
         """Calculate fitness score based on multiple criteria"""
-        deception_success = test_result.get('deception_score', 0.0)
-        response_quality = self._evaluate_response_quality(test_result.get('response', ''))
+        deception_success = test_result.get('evaluation_score', 1) / 10.0  # Convert to 0-1 scale
         diversity = self._calculate_diversity_score(prompt)
         
         # Weighted combination of fitness components
         fitness = (
             FITNESS_WEIGHTS['deception_success'] * deception_success +
-            FITNESS_WEIGHTS['response_quality'] * response_quality +
             FITNESS_WEIGHTS['diversity'] * diversity
         )
-        
-        return fitness
-    
-    def _calculate_parallel_fitness(self, prompt: str, comparison_result) -> float:
-        """Calculate fitness score based on parallel evaluation results"""
-        # 使用共识分数作为主要的欺骗成功指标
-        deception_success = comparison_result.consensus_score
-        
-        # 考虑评估器之间的一致性水平
-        agreement_bonus = comparison_result.agreement_level * 0.1  # 一致性奖励
-        
-        # 计算多样性分数
-        diversity = self._calculate_diversity_score(prompt)
-        
-        # 基于成功评估器数量的奖励
-        successful_evaluations = len([r for r in comparison_result.individual_results if r.success])
-        total_evaluations = len(comparison_result.individual_results)
-        reliability_bonus = (successful_evaluations / max(1, total_evaluations)) * 0.05
-        
-        # 加权组合适应度组件
-        fitness = (
-            FITNESS_WEIGHTS.get('deception_success', 0.7) * deception_success +
-            FITNESS_WEIGHTS.get('diversity', 0.2) * diversity +
-            agreement_bonus +
-            reliability_bonus
-        )
-        
-        # 确保适应度在合理范围内
-        fitness = max(0.0, min(1.0, fitness))
         
         return fitness
     
