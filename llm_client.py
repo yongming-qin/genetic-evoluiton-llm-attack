@@ -9,6 +9,10 @@ import os
 from typing import Dict, List, Optional, Tuple
 from config import HF_TOKEN, HF_BASE_URL, MODEL_NAME, MAX_TOKENS, TEMPERATURE, TOP_P, REPETITION_PENALTY
 
+# 日志配置
+LOG_DIR = "logs"
+LOG_FILE = "test_results.json"
+
 
 class LLMClient:
     def __init__(self, model_name: str = MODEL_NAME, use_hf_evaluator: bool = False):
