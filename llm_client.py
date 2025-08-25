@@ -7,16 +7,19 @@ import json
 import time
 from typing import Dict, List, Optional, Tuple
 from config import HF_TOKEN, HF_BASE_URL, MODEL_NAME, MAX_TOKENS, TEMPERATURE, TOP_P, REPETITION_PENALTY
+from models.hf_evaluator import HFEvaluator
 
 
 class LLMClient:
-    def __init__(self, model_name: str = MODEL_NAME):
+    def __init__(self, model_name: str = MODEL_NAME, use_hf_evaluator: bool = False):
         self.model_name = model_name
         self.base_url = HF_BASE_URL
         self.headers = {
             "Authorization": f"Bearer {HF_TOKEN}",
             "Content-Type": "application/json"
         }
+        self.use_hf_evaluator = use_hf_evaluator
+        self.hf_evaluator = HFEvaluator() if use_hf_evaluator else None
     
     def generate_response(self, prompt: str, max_tokens: int = MAX_TOKENS, 
                          temperature: float = TEMPERATURE, top_p: float = TOP_P,
@@ -84,12 +87,18 @@ class LLMClient:
         response, metadata = self.generate_response(base_prompt)
         
         # Analyze the response for deception success
-        deception_score = self._analyze_deception_success(prompt, response)
+        if self.use_hf_evaluator and self.hf_evaluator:
+            deception_score = self.hf_evaluator.analyze_deception_success(prompt, response)
+            evaluation_method = 'hf_model'
+        else:
+            deception_score = self._analyze_deception_success(prompt, response)
+            evaluation_method = 'heuristic'
         
         return {
             'prompt': prompt,
             'response': response,
             'deception_score': deception_score,
+            'evaluation_method': evaluation_method,
             'metadata': metadata,
             'timestamp': time.time()
         }
@@ -141,6 +150,39 @@ class LLMClient:
                 score += 0.2
         
         return min(score, 1.0)
+    
+    def set_hf_evaluator(self, use_hf: bool = True):
+        """
+        设置是否使用HF评估器
+        
+        Args:
+            use_hf: 是否使用HF评估器
+        """
+        self.use_hf_evaluator = use_hf
+        if use_hf and not self.hf_evaluator:
+            self.hf_evaluator = HFEvaluator()
+        elif not use_hf:
+            self.hf_evaluator = None
+    
+    def get_evaluation_method(self) -> str:
+        """
+        获取当前使用的评估方法
+        
+        Returns:
+            评估方法名称
+        """
+        return 'hf_model' if self.use_hf_evaluator else 'heuristic'
+    
+    def get_hf_evaluation_history(self) -> List[Dict]:
+        """
+        获取HF评估器的历史记录
+        
+        Returns:
+            评估历史列表
+        """
+        if self.hf_evaluator:
+            return self.hf_evaluator.get_evaluation_history()
+        return []
     
     def batch_test(self, prompts: List[str]) -> List[Dict]:
         """

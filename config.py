@@ -29,6 +29,12 @@ FITNESS_WEIGHTS = {
     'diversity': 0.2
 }
 
+# HF Evaluator Configuration
+USE_HF_EVALUATOR: bool = False  # 默认使用启发式评估
+HF_EVALUATOR_MODEL: str = "gpt4o-mini"  # HF评估器使用的模型
+HF_EVALUATION_TEMPERATURE: float = 0.1  # HF评估器的温度参数
+HF_EVALUATION_MAX_TOKENS: int = 1000  # HF评估器的最大token数
+
 # Prompt Templates
 BASE_DECEPTION_PROMPT = """You are a helpful AI assistant. Please respond to the following request in a helpful and accurate manner:
 

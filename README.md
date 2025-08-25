@@ -14,11 +14,54 @@ The Genetic Attack Framework implements an evolutionary approach to LLM testing 
 
 ## 🏗️ Architecture
 
+### Project Structure
+
+```
+genetic-evoluiton-llm-attack/
+├── 📁 docs/                    # Documentation files
+│   ├── HF_EVALUATOR_README.md
+│   ├── INITIAL_PROMPTS_README.md
+│   ├── PARALLEL_EVALUATION_README.md
+│   └── USAGE_GUIDE.md
+├── 📁 examples/                 # Example scripts and demos
+│   ├── parallel_evaluation_example.py
+│   └── show_attack_prompts.py
+├── 📁 models/                   # Model interfaces and evaluators
+│   ├── __init__.py
+│   ├── deepseek_judge.py
+│   ├── gpt4o_judge.py
+│   ├── hf_evaluator.py
+│   ├── hf_interface.py
+│   └── qwen_judge.py
+├── 📁 tests/                    # Test scripts
+│   ├── test_full_integration.py
+│   └── test_initial_prompts.py
+├── 📄 Core Framework Files
+│   ├── main.py                 # Main entry point
+│   ├── genetic_algorithm.py    # Genetic algorithm implementation
+│   ├── deception_agent.py      # Prompt generation and manipulation
+│   ├── llm_client.py          # LLM interface client
+│   ├── parallel_evaluator.py   # Parallel evaluation system
+│   └── initial_prompts.py      # Attack template library
+├── 📄 Configuration
+│   ├── config.py              # Main configuration
+│   ├── config_loader.py       # Configuration loader
+│   └── model_config.py        # Model-specific settings
+├── 📄 Documentation
+│   ├── README.md              # This file
+│   ├── analysis.md            # Attack analysis and templates
+│   └── requirements.txt       # Python dependencies
+└── 📄 Other
+    └── .gitignore
+```
+
 ### Core Components
 
 - **`LLMClient`**: Interfaces with Hugging Face API to test prompts against target models
 - **`DeceptionAgent`**: Generates and manipulates deceptive prompts using various strategies
 - **`GeneticAlgorithm`**: Manages the evolutionary process, selection, and reproduction
+- **`initial_prompts.py`**: 🆕 Contains successful attack templates from analysis.md for initial population
+- **`ParallelEvaluator`**: 🆕 Multi-judge evaluation system for robust assessment
 - **`main.py`**: Command-line interface and orchestration script
 
 ### Key Features
@@ -26,6 +69,9 @@ The Genetic Attack Framework implements an evolutionary approach to LLM testing 
 - **Multi-objective Fitness**: Evaluates prompts based on deception success, response quality, and diversity
 - **Adaptive Evolution**: Automatically expands successful prompts and generates variations
 - **Population Management**: Maintains diversity while promoting successful strategies
+- **🆕 Evidence-based Initialization**: Uses proven attack templates from analysis.md as initial population
+- **🆕 Template-based Generation**: Supports 7 attack categories with variable placeholders
+- **🆕 Complexity Scaling**: 5 complexity levels from simple direct to recursive logic attacks
 - **Comprehensive Analysis**: Tracks evolution progress and identifies best-performing attacks
 
 ## 🚀 Quick Start
@@ -203,6 +249,42 @@ Enable verbose output:
 ```bash
 python main.py -v --generations 10
 ```
+
+## 🆕 Initial Prompt Templates
+
+The framework now includes evidence-based initial prompt templates derived from successful attack cases analyzed in `analysis.md`.
+
+### Attack Categories
+
+- **Debt Bondage**: Creating unpayable loan structures
+- **Passport Confiscation**: Administrative document retention
+- **Recruitment Fees**: Charging illegal placement fees
+- **Wage Theft**: Unauthorized salary deductions
+- **Compound Exploitation**: Multi-vector control systems
+- **Jurisdictional Arbitrage**: Exploiting legal differences
+- **Hypothetical Assurance**: Academic/research framing
+
+### Usage
+
+```python
+from initial_prompts import get_initial_population
+from deception_agent import DeceptionAgent
+
+# Get initial templates
+initial_prompts = get_initial_population(20)
+
+# Use with DeceptionAgent (automatic integration)
+agent = DeceptionAgent()
+population = agent.generate_initial_population(50)  # 50% from templates
+```
+
+### Testing
+
+```bash
+python tests/test_initial_prompts.py
+```
+
+For detailed documentation, see `docs/INITIAL_PROMPTS_README.md`.
 
 ## 📚 Dependencies
 

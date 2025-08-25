@@ -11,6 +11,9 @@ from config import POPULATION_SIZE, MAX_GENERATIONS
 from llm_client import LLMClient
 from deception_agent import DeceptionAgent
 from genetic_algorithm import GeneticAlgorithm
+from parallel_evaluator import ParallelEvaluator
+from model_config import ModelConfig
+from config_loader import ConfigLoader, SystemConfig
 
 
 def main():
@@ -50,15 +53,91 @@ Examples:
         help='Enable verbose output'
     )
     
+    parser.add_argument(
+        '--model', '-m',
+        type=str,
+        default='deepseek_r1',
+        help='Model to use for optimization (default: deepseek_r1)'
+    )
+    
+    parser.add_argument(
+        '--use-hf-evaluator',
+        action='store_true',
+        help='Use Hugging Face model for evaluation'
+    )
+    
+    parser.add_argument(
+        '--parallel-eval',
+        action='store_true',
+        help='Use parallel evaluation with multiple judge models'
+    )
+    
+    parser.add_argument(
+        '--target-model',
+        type=str,
+        default='gpt-oss-20b',
+        help='Target model to attack (default: gpt-oss-20b)'
+    )
+    
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='parallel_config.json',
+        help='Configuration file path (default: parallel_config.json)'
+    )
+    
+    parser.add_argument(
+        '--use-config',
+        action='store_true',
+        help='Use configuration file for parameters (overrides command line args)'
+    )
+    
     args = parser.parse_args()
+    
+    # Load configuration if requested
+    config = None
+    if args.use_config or os.path.exists(args.config):
+        try:
+            config_loader = ConfigLoader(args.config)
+            config = config_loader.load_config()
+            print(f"✓ Configuration loaded from {args.config}")
+            
+            # Override args with config values if using config
+            if args.use_config:
+                args.generations = config.genetic_algorithm.generations
+                args.population = config.genetic_algorithm.population_size
+                args.model = config.models.attack_model
+                args.target_model = config.models.target_model
+                args.parallel_eval = config.parallel_evaluation.enabled
+                print("✓ Command line arguments overridden by configuration")
+                
+        except Exception as e:
+            print(f"Warning: Failed to load configuration: {e}")
+            print("Continuing with command line arguments...")
+            config = None
     
     # Initialize components
     print("Initializing Genetic Attack Framework...")
+    print(f"Selected model: {args.model}")
+    print(f"Target model: {args.target_model}")
+    print(f"HF Evaluator: {'Enabled' if args.use_hf_evaluator else 'Disabled'}")
+    print(f"Parallel Evaluation: {'Enabled' if args.parallel_eval else 'Disabled'}")
     
     try:
-        llm_client = LLMClient()
-        deception_agent = DeceptionAgent()
-        genetic_algo = GeneticAlgorithm(llm_client, deception_agent)
+        # Initialize parallel evaluator if requested
+        parallel_evaluator = None
+        if args.parallel_eval:
+            parallel_evaluator = ParallelEvaluator(
+                target_model_name=args.target_model,
+                enable_deepseek=True,
+                enable_gpt4o=True,
+                enable_qwen=True
+            )
+            print("✓ Parallel Evaluator initialized")
+        
+        llm_client = LLMClient(use_hf_evaluator=args.use_hf_evaluator)
+        deception_agent = DeceptionAgent(model_name=args.model)
+        genetic_algo = GeneticAlgorithm(llm_client, deception_agent, parallel_evaluator=parallel_evaluator)
         
         print("✓ LLM Client initialized")
         print("✓ Deception Agent initialized")

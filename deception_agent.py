@@ -6,13 +6,16 @@ import random
 import string
 from typing import List, Dict, Tuple
 from config import DECEPTION_OBJECTIVES, BASE_DECEPTION_PROMPT
+from initial_prompts import get_initial_population, SUCCESSFUL_ATTACK_TEMPLATES, VARIABLE_PLACEHOLDERS
 
 
 class DeceptionAgent:
-    def __init__(self):
+    def __init__(self, model_name: str = "deepseek_r1"):
+        self.model_name = model_name
         self.objectives = DECEPTION_OBJECTIVES
         self.base_prompt = BASE_DECEPTION_PROMPT
         self.prompt_templates = self._initialize_templates()
+        print(f"DeceptionAgent initialized with model: {model_name}")
     
     def _initialize_templates(self) -> List[str]:
         """Initialize various prompt templates for deception attempts"""
@@ -30,10 +33,23 @@ class DeceptionAgent:
         ]
     
     def generate_initial_population(self, size: int) -> List[str]:
-        """Generate initial population of deceptive prompts"""
+        """Generate initial population using successful attack templates from analysis.md"""
         population = []
         
-        for _ in range(size):
+        # 首先使用analysis.md中的成功攻击案例作为初始种群的核心
+        initial_templates = get_initial_population(size // 2)
+        
+        # 填充变量占位符生成具体的攻击prompt
+        for template in initial_templates:
+            if len(population) >= size:
+                break
+                
+            # 随机选择变量值填充模板
+            filled_prompt = self._fill_template_variables(template)
+            population.append(filled_prompt)
+        
+        # 如果还需要更多prompt，使用原有的生成方法补充
+        while len(population) < size:
             template = random.choice(self.prompt_templates)
             objective = random.choice(self.objectives)
             
@@ -56,7 +72,20 @@ class DeceptionAgent:
             
             population.append(prompt)
         
-        return population
+        return population[:size]
+    
+    def _fill_template_variables(self, template: str) -> str:
+        """填充模板中的变量占位符"""
+        filled_template = template
+        
+        # 替换所有变量占位符
+        for var_name, var_values in VARIABLE_PLACEHOLDERS.items():
+            placeholder = "{" + var_name + "}"
+            if placeholder in filled_template:
+                replacement = random.choice(var_values)
+                filled_template = filled_template.replace(placeholder, replacement)
+        
+        return filled_template
     
     def mutate_prompt(self, prompt: str, mutation_rate: float = 0.1) -> str:
         """Apply mutations to a prompt"""
