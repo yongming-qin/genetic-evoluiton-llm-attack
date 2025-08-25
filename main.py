@@ -9,7 +9,7 @@ import os
 from typing import Optional
 from config import POPULATION_SIZE, MAX_GENERATIONS, INITIAL_POPULATION_FILE
 from llm_client import LLMClient
-from deception_agent import DeceptionAgent
+from genetic_agent import SpecificAgent
 from genetic_algorithm import GeneticAlgorithm
 
 
@@ -66,7 +66,7 @@ Examples:
     
     try:
         llm_client = LLMClient()
-        deception_agent = DeceptionAgent()
+        deception_agent = SpecificAgent()
         genetic_algo = GeneticAlgorithm(llm_client, deception_agent)
         
         print("✓ LLM Client initialized")

@@ -10,7 +10,7 @@ from config import BASE_DECEPTION_PROMPT
 from llm_client import LLMClient
 
 
-class DeceptionAgent:
+class SpecificAgent:
     def __init__(self):
         self.base_prompt = BASE_DECEPTION_PROMPT
         self.llm_client = LLMClient()
@@ -117,9 +117,8 @@ EXTRACTED ATTACK PROMPTS:
             # Clean and validate prompts
             cleaned_prompts = []
             for prompt in prompts:
-                cleaned = self._clean_prompt(prompt)
-                if cleaned and len(cleaned.split()) >= 3:  # Ensure minimum length
-                    cleaned_prompts.append(cleaned)
+                if prompt and len(prompt.split()) >= 3:  # Ensure minimum length
+                    cleaned_prompts.append(prompt)
             
             return cleaned_prompts
             
@@ -162,36 +161,14 @@ EXTRACTED ATTACK PROMPTS:
                 prompts.append(line)
         
         # If we got fewer than expected, try to split by sentences
-        if len(prompts) < expected_count and len(prompts) > 0:
+        if False and len(prompts) < expected_count and len(prompts) > 0:
             # Split the first prompt by sentences if it's too long
             first_prompt = prompts[0]
             sentences = [s.strip() for s in first_prompt.split('.') if s.strip()]
             if len(sentences) > 1:
                 prompts = sentences + prompts[1:]
         
-        return prompts[:expected_count]
-    
-    def _clean_prompt(self, prompt: str) -> str:
-        """
-        Clean and validate a prompt
-        
-        Args:
-            prompt: Raw prompt string
-            
-        Returns:
-            Cleaned prompt string
-        """
-        # Remove extra whitespace
-        prompt = ' '.join(prompt.split())
-        
-        # Ensure it ends with proper punctuation
-        if not prompt.endswith(('.', '!', '?')):
-            prompt += '?'
-        
-        # Remove quotes if present
-        prompt = prompt.strip('"\'')
-        
-        return prompt
+        return prompts
     
     def mutate_prompt(self, prompt: str, mutation_rate: float = 0.1) -> str:
         """Apply mutations to a prompt"""
@@ -341,32 +318,34 @@ EXTRACTED ATTACK PROMPTS:
             return ' '.join(essential)
         return prompt
     
-    def evaluate_prompt_quality(self, prompt: str) -> float:
-        """Evaluate the quality of a prompt for deception"""
-        score = 0.0
-        
-        # Length score (not too short, not too long)
-        word_count = len(prompt.split())
-        if 5 <= word_count <= 20:
-            score += 0.2
-        elif 3 <= word_count <= 25:
-            score += 0.1
-        
-        # Complexity score
-        if any(word in prompt.lower() for word in ['please', 'kindly', 'help']):
-            score += 0.2
-        
-        # Context score
-        if any(word in prompt.lower() for word in ['research', 'study', 'academic', 'educational']):
-            score += 0.2
-        
-        # Clarity score
-        if prompt.endswith('?') or prompt.endswith('.'):
-            score += 0.1
-        
-        # Objective alignment score
-        if any(obj.lower() in prompt.lower() for obj in self.objectives):
-            score += 0.2
-        
-        return min(score, 1.0)
 
+
+"""
+Example script demonstrating LLM-based initial population generation
+"""
+def main():
+    # Initialize the deception agent
+    agent = SpecificAgent()
+    
+    # Example 1: Generate population using text file
+    print("=== Example 1: LLM-based generation from text file ===")
+    text_file_path = "example_attack_samples.txt"
+    
+    if os.path.exists(text_file_path):
+        print(f"Generating initial population from {text_file_path}...")
+        population = agent.generate_initial_population(
+            size=10, 
+            text_file_path=text_file_path
+        )
+        
+        print(f"Generated {len(population)} attack prompts:")
+        for i, prompt in enumerate(population, 1):
+            print(f"{i}. {prompt}")
+    else:
+        print(f"Text file {text_file_path} not found. Please create it first.")
+    
+    print("\n" + "="*50 + "\n")
+    
+
+if __name__ == "__main__":
+    main()

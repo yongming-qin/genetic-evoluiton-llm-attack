@@ -7,7 +7,7 @@ The below code was used in the main.py file to run the genetic algorithm in inte
 
 
 def run_interactive_mode(genetic_algo: GeneticAlgorithm, llm_client: LLMClient, 
-                        deception_agent: DeceptionAgent):
+                        genetic_agent: SpecificAgent):
     """Run the framework in interactive mode"""
     print("\n=== Interactive Mode ===")
     print("Commands: test, evolve, analyze, help, quit")

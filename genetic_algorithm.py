@@ -10,12 +10,12 @@ from config import (
     POPULATION_SIZE, MAX_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE,
     ELITE_SIZE, TOURNAMENT_SIZE, FITNESS_WEIGHTS, INITIAL_POPULATION_FILE
 )
-from deception_agent import DeceptionAgent
+from genetic_agent import SpecificAgent
 from llm_client import LLMClient
 
 
 class GeneticAlgorithm:
-    def __init__(self, llm_client: LLMClient, deception_agent: DeceptionAgent):
+    def __init__(self, llm_client: LLMClient, deception_agent: SpecificAgent):
         self.llm_client = llm_client
         self.deception_agent = deception_agent
         self.population = []
@@ -34,14 +34,14 @@ class GeneticAlgorithm:
         self.population = self.deception_agent.generate_initial_population(size, text_file_path)
         self.fitness_scores = [0.0] * size
         
-    def evaluate_population(self, use_llm_evaluation: bool = True) -> List[float]:
+    def evaluate_population(self) -> List[float]:
         """Evaluate the fitness of all individuals in the population"""
         print("Evaluating population...")
         fitness_scores = []
         
         for i, prompt in enumerate(tqdm(self.population, desc="Testing prompts")):
             # Test the prompt against the LLM
-            test_result = self.llm_client.test_deception(prompt, use_llm_evaluation=use_llm_evaluation)
+            test_result = self.llm_client.test_deception(prompt)
             
             # Calculate fitness based on multiple factors
             fitness = self._calculate_fitness(prompt, test_result)
@@ -77,49 +77,16 @@ class GeneticAlgorithm:
     
     def _calculate_fitness(self, prompt: str, test_result: Dict) -> float:
         """Calculate fitness score based on multiple criteria"""
-        # Handle both new LLM-based evaluation and old heuristic format
-        if 'evaluation_score' in test_result:
-            # New LLM-based evaluation format (1-10 scale)
-            deception_success = test_result.get('evaluation_score', 1) / 10.0  # Convert to 0-1 scale
-        else:
-            # Old heuristic format (0-1 scale)
-            deception_success = test_result.get('deception_score', 0.0)
-        
-        response_quality = self._evaluate_response_quality(test_result.get('response', ''))
+        deception_success = test_result.get('evaluation_score', 1) / 10.0  # Convert to 0-1 scale
         diversity = self._calculate_diversity_score(prompt)
         
         # Weighted combination of fitness components
         fitness = (
             FITNESS_WEIGHTS['deception_success'] * deception_success +
-            FITNESS_WEIGHTS['response_quality'] * response_quality +
             FITNESS_WEIGHTS['diversity'] * diversity
         )
         
         return fitness
-    
-    def _evaluate_response_quality(self, response: str) -> float:
-        """Evaluate the quality of the LLM's response"""
-        if not response:
-            return 0.0
-        
-        score = 0.0
-        
-        # Length score
-        word_count = len(response.split())
-        if word_count > 10:
-            score += 0.3
-        elif word_count > 5:
-            score += 0.2
-        
-        # Coherence score (simple heuristic)
-        if response.endswith('.') or response.endswith('?'):
-            score += 0.2
-        
-        # Content relevance score
-        if any(word in response.lower() for word in ['help', 'assist', 'explain', 'show']):
-            score += 0.3
-        
-        return min(score, 1.0)
     
     def _calculate_diversity_score(self, prompt: str) -> float:
         """Calculate diversity score to maintain population variety"""
@@ -217,12 +184,12 @@ class GeneticAlgorithm:
         
         return expanded
     
-    def run_generation(self, generation_num: int, use_llm_evaluation: bool = True) -> Dict:
+    def run_generation(self, generation_num: int) -> Dict:
         """Run a single generation of the genetic algorithm"""
         print(f"\n=== Generation {generation_num} ===")
         
         # Evaluate current population
-        fitness_scores = self.evaluate_population(use_llm_evaluation=use_llm_evaluation)
+        fitness_scores = self.evaluate_population()
         
         # Find best individuals
         best_idx = np.argmax(fitness_scores)
@@ -270,16 +237,15 @@ class GeneticAlgorithm:
         
         return generation_stats
     
-    def run_evolution(self, max_generations: int = MAX_GENERATIONS, use_llm_evaluation: bool = True) -> List[Dict]:
+    def run_evolution(self, max_generations: int = MAX_GENERATIONS) -> List[Dict]:
         """Run the complete evolutionary process"""
         print("Starting Genetic Attack Evolution...")
         print(f"Population size: {len(self.population)}")
         print(f"Max generations: {max_generations}")
-        print(f"Using LLM evaluation: {use_llm_evaluation}")
         
         for generation in range(1, max_generations + 1):
             try:
-                stats = self.run_generation(generation, use_llm_evaluation=use_llm_evaluation)
+                stats = self.run_generation(generation)
                 
                 # Check for convergence
                 if generation > 10:

@@ -4,7 +4,7 @@ A sophisticated framework that applies genetic algorithms to test and evaluate L
 
 # Short Instruction
 Yongming:
-First, play around with the test_llm_evaluation.py to test the LLM-based evaluation functionality.
+First, play around with the test_llm_evaluation in llm_client.py to test the LLM-based evaluation functionality.
 
 Then, run the main.py to run the genetic algorithm.
 
@@ -35,7 +35,7 @@ The Genetic Attack Framework implements an evolutionary approach to LLM testing 
 ### Core Components
 
 - **`LLMClient`**: Interfaces with Hugging Face API to test prompts against target models, with both heuristic and LLM-based evaluation methods
-- **`DeceptionAgent`**: Generates and manipulates deceptive prompts using various strategies
+- **`SpecificAgent`**: Generates and manipulates deceptive prompts using various strategies
 - **`GeneticAlgorithm`**: Manages the evolutionary process, selection, and reproduction
 - **`main.py`**: Command-line interface and orchestration script
 
@@ -135,12 +135,12 @@ from llm_client import LLMClient
 client = LLMClient()
 
 # Test with LLM-based evaluation (default, more accurate)
-result = client.test_deception(prompt, use_llm_evaluation=True)
+result = client.test_deception(prompt)
 print(f"LLM Score: {result['evaluation_score']}/10")
 print(f"Reasoning: {result['evaluation_reasoning']}")
 
 # Test with heuristic evaluation (faster, less accurate)
-result = client.test_deception(prompt, use_llm_evaluation=False)
+result = client.test_deception(prompt)
 print(f"Heuristic Score: {result['deception_score']:.2f}/1.0")
 
 # Direct LLM evaluation
@@ -268,7 +268,7 @@ This framework is designed for:
 
 ### Custom Deception Strategies
 
-Extend the `DeceptionAgent` class to implement:
+Extend the `SpecificAgent` class to implement:
 - Domain-specific attack patterns
 - Multi-step deception sequences
 - Context-aware prompt generation
