@@ -7,7 +7,7 @@ import argparse
 import sys
 import os
 from typing import Optional
-from config import POPULATION_SIZE, MAX_GENERATIONS
+from config import POPULATION_SIZE, MAX_GENERATIONS, INITIAL_POPULATION_FILE
 from llm_client import LLMClient
 from deception_agent import DeceptionAgent
 from genetic_algorithm import GeneticAlgorithm
@@ -20,6 +20,8 @@ def main():
         epilog="""
 Examples:
   python main.py --generations 50 --population 100
+  python main.py --text-file example_attack_samples.txt --population 20
+  python main.py -t attack_discussion.txt -g 30 -p 50
         """
     )
     
@@ -50,6 +52,13 @@ Examples:
         help='Enable verbose output'
     )
     
+    parser.add_argument(
+        '--text-file', '-t',
+        type=str,
+        default=INITIAL_POPULATION_FILE,
+        help='Path to text file for LLM-based initial population generation'
+    )
+    
     args = parser.parse_args()
     
     # Initialize components
@@ -74,8 +83,8 @@ Examples:
     
     try:
         # Initialize population
-        genetic_algo.initialize_population(args.population)
-        print(f"✓ Initial population of {len(genetic_algo.population)} created")
+        genetic_algo.initialize_population(args.population, args.text_file)
+        print(f"✓ Initial population of {len(genetic_algo.population)} created from {args.text_file}")
         
         # Run evolution
         results = genetic_algo.run_evolution(args.generations)
