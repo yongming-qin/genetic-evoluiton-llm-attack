@@ -1,6 +1,6 @@
 # Genetic Attack Framework for LLM Testing
 
-A sophisticated framework that applies genetic algorithms to test and evaluate Large Language Models (LLMs) through evolutionary deception techniques. This framework automatically generates, tests, and evolves prompts designed to test the robustness and safety of LLMs.
+A sophisticated framework that applies genetic algorithms to test and evaluate Large Language Models (LLMs) through evolutionary eception techniques. This framework automatically generates, tests, and evolves prompts designed to test the robustness and safety of LLMs.
 
 # Short Instruction
 Yongming:
@@ -135,12 +135,12 @@ from llm_client import LLMClient
 client = LLMClient()
 
 # Test with LLM-based evaluation (default, more accurate)
-result = client.test_deception(prompt)
+result = client.attack_oss(prompt)
 print(f"LLM Score: {result['evaluation_score']}/10")
 print(f"Reasoning: {result['evaluation_reasoning']}")
 
 # Test with heuristic evaluation (faster, less accurate)
-result = client.test_deception(prompt)
+result = client.attack_oss(prompt)
 print(f"Heuristic Score: {result['deception_score']:.2f}/1.0")
 
 # Direct LLM evaluation

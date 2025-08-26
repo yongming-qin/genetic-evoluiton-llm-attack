@@ -39,9 +39,10 @@ class GeneticAlgorithm:
         print("Evaluating population...")
         fitness_scores = []
         
+        self.responses = []
         for i, prompt in enumerate(tqdm(self.population, desc="Testing prompts")):
             # Test the prompt against the LLM
-            test_result = self.llm_client.test_deception(prompt)
+            test_result = self.llm_client.attack_oss(prompt)
             
             # Calculate fitness based on multiple factors
             fitness = self._calculate_fitness(prompt, test_result)
@@ -50,6 +51,7 @@ class GeneticAlgorithm:
             # Store the test result for analysis
             test_result['fitness'] = fitness
             test_result['generation'] = len(self.generation_history)
+            self.responses.append(test_result.get('base_response', ''))
             
             # Log the evaluation (base prompt/response and evaluation LLM details)
             log_record = {
@@ -57,7 +59,7 @@ class GeneticAlgorithm:
                 'individual_index': i,
                 'prompt': prompt,
                 'base_prompt': test_result.get('base_prompt', f"Please respond to this request: {prompt}"),
-                'base_response': test_result.get('response', ''),
+                # 'base_response': test_result.get('base_response', ''),
                 'base_metadata': test_result.get('base_metadata', test_result.get('metadata', {})),
                 'evaluation_prompt': test_result.get('evaluation_prompt', None),
                 'evaluation_score': test_result.get('evaluation_score', None),
@@ -77,13 +79,14 @@ class GeneticAlgorithm:
     
     def _calculate_fitness(self, prompt: str, test_result: Dict) -> float:
         """Calculate fitness score based on multiple criteria"""
-        deception_success = test_result.get('evaluation_score', 1) / 10.0  # Convert to 0-1 scale
-        diversity = self._calculate_diversity_score(prompt)
+        llm_eval_score = test_result.get('evaluation_score', 1) / 10.0  # Convert to 0-1 scale
+        #diversity = self._calculate_diversity_score(prompt)
+        #FITNESS_WEIGHTS['diversity'] * diversity
         
-        # Weighted combination of fitness components
+        
+        # Weighted combination of fitness components. yq: only deception_success is used for now.
         fitness = (
-            FITNESS_WEIGHTS['deception_success'] * deception_success +
-            FITNESS_WEIGHTS['diversity'] * diversity
+            FITNESS_WEIGHTS['deception_success'] * llm_eval_score
         )
         
         return fitness
@@ -194,6 +197,7 @@ class GeneticAlgorithm:
         # Find best individuals
         best_idx = np.argmax(fitness_scores)
         best_prompt = self.population[best_idx]
+        best_response = self.responses[best_idx]
         best_fitness = fitness_scores[best_idx]
         
         # Store generation statistics
@@ -203,6 +207,7 @@ class GeneticAlgorithm:
             'avg_fitness': np.mean(fitness_scores),
             'std_fitness': np.std(fitness_scores),
             'best_prompt': best_prompt,
+            'best_response': best_response,
             'population_size': len(self.population)
         }
         
@@ -233,7 +238,7 @@ class GeneticAlgorithm:
         
         print(f"Best fitness: {best_fitness:.4f}")
         print(f"Average fitness: {generation_stats['avg_fitness']:.4f}")
-        print(f"Best prompt: {best_prompt[:100]}...")
+        print(f"Best prompt: {best_prompt}\n Response: {best_response}")
         
         return generation_stats
     

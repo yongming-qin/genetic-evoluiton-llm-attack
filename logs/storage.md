@@ -33,7 +33,7 @@ Commands:
                 prompt = command[5:].strip()
                 if prompt:
                     print(f"Testing: {prompt}")
-                    result = llm_client.test_deception(prompt)
+                    result = llm_client.attack_oss(prompt)
                     print(f"Deception Score: {result['deception_score']:.4f}")
                     print(f"Response: {result['response'][:200]}...")
                 else:
